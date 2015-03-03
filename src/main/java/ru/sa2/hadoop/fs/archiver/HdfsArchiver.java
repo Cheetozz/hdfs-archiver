@@ -1,6 +1,5 @@
-package archiver;
+package ru.sa2.hadoop.fs.archiver;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 
