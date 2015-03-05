@@ -102,6 +102,7 @@ public class ZipHdfsArchiver implements HdfsArchiver{
     public void zipDir(Path sourceDir, Path targetDir) throws IOException {
 
         //ToDo write directory ru.sa2.hadoop.fs.archiver
+        //z.k;kzhxbc;kb;zxckbv;kzxc;vkzx;kcb;vkzxc;v
         RemoteIterator<LocatedFileStatus> files = hdfs.listFiles(sourceDir, true); //true - recursive
         while (files.hasNext()) {
             System.out.println(files.next().getPath());
