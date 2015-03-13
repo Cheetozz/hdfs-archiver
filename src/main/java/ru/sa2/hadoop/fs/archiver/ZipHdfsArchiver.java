@@ -106,7 +106,6 @@ public class ZipHdfsArchiver implements HdfsArchiver{
         while (files.hasNext()) {
             System.out.println(files.next().getPath());
         }
-
     }
 
     private void checkOutPath(Path out) throws IOException {
