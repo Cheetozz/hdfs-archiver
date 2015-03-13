@@ -92,8 +92,12 @@ public class GzipCompressorHdfsArchiver implements HdfsArchiver {
 
     private void checkOutPath(Path out) throws IOException {
         if (hdfs.exists(out)) {
-            hdfs.delete(out, true);
-            LOG.info("File archive already exist. Remove.");
+            LOG.info("Path " + out + " already exist. Remove.");
+            deletePath(out);
         }
+    }
+
+    private void deletePath(Path out) throws IOException {
+        hdfs.delete(out, true);
     }
 }

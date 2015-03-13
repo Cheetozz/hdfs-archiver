@@ -31,19 +31,24 @@ public class GzipHdfsArchiver implements HdfsArchiver {
     @Override
     public void fileToArchive(Path sourceFile, Path targetDir) throws IOException {
 
-        if (!hdfs.exists(sourceFile)) throw new FileNotFoundException();
+        if (!hdfs.exists(sourceFile)) throw new FileNotFoundException("File:\t" + sourceFile);
         if (hdfs.isDirectory(sourceFile))
-            throw new IllegalArgumentException("Directories not supported, use Zipper.zipDirectory()");
+            throw new IllegalArgumentException("Directories not supported");
+        LOG.info("======================");
+        LOG.info("START ARCHIVING");
+        LOG.info("File source:\t" + sourceFile);
 
         streamToArchive(hdfs.open(sourceFile), targetDir, sourceFile.getName());
-
     }
 
     @Override
     public void mergeToArchive(FileStatus[] mergingFiles, Path targetDir, String archiveName) throws IOException {
+        LOG.info("======================");
+        LOG.info("START ARCHIVING");
 
-        Path out = new Path(targetDir + File.separator + archiveName + suffix);
-        checkOutPath(out);
+        Path out = getOutPath(targetDir, archiveName);
+
+        LOG.info("Archive file:\t" + out);
 
         FSDataOutputStream outputStream = hdfs.create(out);
         GZIPOutputStream gzOut = new GZIPOutputStream(outputStream);
@@ -51,25 +56,40 @@ public class GzipHdfsArchiver implements HdfsArchiver {
         byte[] buffer = new byte[BLOCKSIZE];
         int bytesRead;
 
-        for (FileStatus file : mergingFiles) {
-            FSDataInputStream inputStream = hdfs.open(file.getPath());
+        for (FileStatus status : mergingFiles) {
+
+            Path file = status.getPath();
+
+            LOG.info("Merging file:\t" + file);
+
+            if (hdfs.exists(file)){
+                gzOut.flush();
+                gzOut.close();
+                outputStream.close();
+                throw new FileNotFoundException("File:\t" + file);
+            }
+
+            FSDataInputStream inputStream = hdfs.open(file);
             while ((bytesRead = inputStream.read(buffer, 0, BLOCKSIZE)) != -1) {
                 gzOut.write(buffer, 0, bytesRead);
             }
-            gzOut.write("\n".getBytes());
+            //TODO если у файла нет в конце пустой строки - последняя  и первая строчки смежных файлов склеиваются
+//            gzOut.write("\n".getBytes());
             inputStream.close();
         }
 
         gzOut.flush();
         gzOut.close();
         outputStream.close();
+
+        LOG.info("SUCCESS!");
+        LOG.info("======================");
     }
 
     @Override
     public void streamToArchive(InputStream inputStream, Path targetDir, String archiveName) throws IOException {
 
-        Path out = new Path(targetDir + File.separator + archiveName + suffix);
-        checkOutPath(out);
+        Path out = getOutPath(targetDir, archiveName);
 
         FSDataOutputStream outputStream = hdfs.create(out);
         GZIPOutputStream gzOut = new GZIPOutputStream(outputStream);
@@ -77,7 +97,6 @@ public class GzipHdfsArchiver implements HdfsArchiver {
         byte[] buffer = new byte[BLOCKSIZE];
         int bytesRead;
 
-//        FSDataInputStream inputStream = (FSDataInputStream) inputStr;
         while ((bytesRead = inputStream.read(buffer, 0, BLOCKSIZE)) != -1) {
             gzOut.write(buffer, 0, bytesRead);
         }
@@ -87,12 +106,25 @@ public class GzipHdfsArchiver implements HdfsArchiver {
         inputStream.close();
         outputStream.close();
 
+        LOG.info("File archive:\t" + out);
+        LOG.info("SUCCESS!");
+        LOG.info("======================");
+    }
+
+    private Path getOutPath(Path targetDir, String archiveName) throws IOException{
+        Path outPath = new Path(targetDir + File.separator + archiveName + suffix);
+        checkOutPath(outPath);
+        return outPath;
     }
 
     private void checkOutPath(Path out) throws IOException {
         if (hdfs.exists(out)) {
-            hdfs.delete(out, true);
-            LOG.info("File archive already exist. Remove.");
+            LOG.info("Path " + out + " already exist. Remove.");
+            deletePath(out);
         }
+    }
+
+    private void deletePath(Path out) throws IOException {
+        hdfs.delete(out, true);
     }
 }
